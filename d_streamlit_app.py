@@ -30,15 +30,19 @@ EXCEL_PATH = os.path.join(os.path.dirname(__file__), "c园林路径规划结果.
 NAMES_PATH = os.path.join(os.path.dirname(__file__), "road_names.json")
 
 # 字体配置：Windows 用微软雅黑，Linux 用文泉驿微米黑 / Noto Sans CJK
-if platform.system() == 'Windows':
-    plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS']
-else:
-    _font_candidates = ['WenQuanYi Micro Hei', 'Noto Sans CJK SC', 'Noto Sans CJK JP',
-                        'WenQuanYi Zen Hei', 'AR PL UMing CN', 'DejaVu Sans']
-    _available = {f.name for f in font_manager.fontManager.ttflist}
-    _chosen = next((f for f in _font_candidates if f in _available), 'DejaVu Sans')
-    plt.rcParams['font.sans-serif'] = [_chosen]
-plt.rcParams['axes.unicode_minus'] = False
+try:
+    if platform.system() == 'Windows':
+        plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS']
+    else:
+        _font_candidates = ['WenQuanYi Micro Hei', 'Noto Sans CJK SC', 'Noto Sans CJK JP',
+                            'WenQuanYi Zen Hei', 'AR PL UMing CN', 'DejaVu Sans']
+        _available = {f.name for f in font_manager.fontManager.ttflist}
+        _chosen = next((f for f in _font_candidates if f in _available), 'DejaVu Sans')
+        plt.rcParams['font.sans-serif'] = [_chosen]
+    plt.rcParams['axes.unicode_minus'] = False
+except Exception:
+    plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
+    plt.rcParams['axes.unicode_minus'] = False
 
 ROUTE_COLORS = {
     '最短路径': '#E63946',
@@ -716,44 +720,42 @@ with tab_ablation:
     col_chart, col_table = st.columns([2, 1])
 
     with col_chart:
-        fig_abl, ax = plt.subplots(figsize=(10, 5))
-        x = np.arange(len(df_abl))
-        width = 0.3
-
-        bars1 = ax.bar(
-            x - width / 2, df_abl.iloc[:, 1], width,
-            label='基准总评分', color='#4ECDC4', alpha=0.9, edgecolor='white'
-        )
-        bars2 = ax.bar(
-            x + width / 2, df_abl.iloc[:, 2], width,
-            label='消融后总评分', color='#FF6B6B', alpha=0.9, edgecolor='white'
-        )
-
         x_labels = [feature_names.get(f, f) for f in df_abl.iloc[:, 0]]
-        ax.set_xlabel('消融特征', fontsize=12)
-        ax.set_ylabel('总评分', fontsize=12)
-        ax.set_title('消融实验：各维度对总评分的影响', fontsize=14, fontweight='bold')
-        ax.set_xticks(x)
-        ax.set_xticklabels(x_labels, fontsize=11)
-        ax.legend(fontsize=11)
-        ax.grid(axis='y', alpha=0.3)
-
-        for bar in bars1:
-            ax.annotate(
-                f'{bar.get_height():.0f}',
-                xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                xytext=(0, 3), textcoords="offset points", ha='center', fontsize=9
+        fig_abl = go.Figure(data=[
+            go.Bar(
+                name='基准总评分',
+                x=x_labels,
+                y=df_abl.iloc[:, 1].tolist(),
+                marker_color='#4ECDC4',
+                text=df_abl.iloc[:, 1].round(0).astype(int).tolist(),
+                textposition='outside',
+                textfont=dict(size=11),
+            ),
+            go.Bar(
+                name='消融后总评分',
+                x=x_labels,
+                y=df_abl.iloc[:, 2].tolist(),
+                marker_color='#FF6B6B',
+                text=df_abl.iloc[:, 2].round(0).astype(int).tolist(),
+                textposition='outside',
+                textfont=dict(size=11),
             )
-        for bar in bars2:
-            ax.annotate(
-                f'{bar.get_height():.0f}',
-                xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
-                xytext=(0, 3), textcoords="offset points", ha='center', fontsize=9
-            )
-
-        plt.tight_layout()
-        st.pyplot(fig_abl)
-        plt.close(fig_abl)
+        ])
+        fig_abl.update_layout(
+            title=dict(text='消融实验：各维度对总评分的影响', font=dict(size=16)),
+            xaxis_title='消融特征',
+            yaxis_title='总评分',
+            barmode='group',
+            bargap=0.3,
+            legend=dict(font=dict(size=12)),
+            font=dict(size=12),
+            margin=dict(l=40, r=40, t=60, b=40),
+            plot_bgcolor='rgba(0,0,0,0)',
+            paper_bgcolor='rgba(0,0,0,0)',
+        )
+        fig_abl.update_xaxes(showgrid=False)
+        fig_abl.update_yaxes(gridcolor='rgba(0,0,0,0.1)', gridwidth=1)
+        st.plotly_chart(fig_abl, width="stretch")
 
     with col_table:
         st.markdown("### 消融实验数据")
