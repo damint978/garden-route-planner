@@ -17,17 +17,27 @@ from streamlit_folium import st_folium
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 import plotly.graph_objects as go
 import openpyxl
 import time
 import json
 import os
+import platform
 
 # ==================== 配置 ====================
 EXCEL_PATH = os.path.join(os.path.dirname(__file__), "c园林路径规划结果.xlsx")
 NAMES_PATH = os.path.join(os.path.dirname(__file__), "road_names.json")
 
-plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS']
+# 字体配置：Windows 用微软雅黑，Linux 用文泉驿微米黑 / Noto Sans CJK
+if platform.system() == 'Windows':
+    plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS']
+else:
+    _font_candidates = ['WenQuanYi Micro Hei', 'Noto Sans CJK SC', 'Noto Sans CJK JP',
+                        'WenQuanYi Zen Hei', 'AR PL UMing CN', 'DejaVu Sans']
+    _available = {f.name for f in font_manager.fontManager.ttflist}
+    _chosen = next((f for f in _font_candidates if f in _available), 'DejaVu Sans')
+    plt.rcParams['font.sans-serif'] = [_chosen]
 plt.rcParams['axes.unicode_minus'] = False
 
 ROUTE_COLORS = {
@@ -470,7 +480,7 @@ with st.sidebar:
         f" | {tour_time}分钟"
     )
 
-    generate_btn = st.button("生成路线", type="primary", use_container_width=True)
+    generate_btn = st.button("生成路线", type="primary", width="stretch")
 
 # 找到选中的路径
 selected_path = None
@@ -531,7 +541,7 @@ with tab_map:
             available_cols = [c for c in display_cols if c in df_nodes.columns]
             st.dataframe(
                 df_nodes[available_cols],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True
             )
         else:
@@ -601,7 +611,7 @@ with tab_compare:
             '路径节点数': int(p['路径节点数']),
         })
     df_compare = pd.DataFrame(compare_data)
-    st.dataframe(df_compare, use_container_width=True, hide_index=True)
+    st.dataframe(df_compare, width="stretch", hide_index=True)
 
     # 对比分析
     st.markdown("### 对比分析")
@@ -660,7 +670,7 @@ with tab_radar:
             legend=dict(font=dict(size=12)),
             margin=dict(l=60, r=60, t=30, b=30)
         )
-        st.plotly_chart(fig_radar, use_container_width=True)
+        st.plotly_chart(fig_radar, width="stretch")
 
         # 各维度进度条
         st.markdown("### 各维度详细评分")
@@ -753,7 +763,7 @@ with tab_ablation:
             '消融特征', '基准总评分', '消融后总评分',
             '评分变化率(%)', '路径重合度(%)', '基准路段数', '消融后路段数'
         ]
-        st.dataframe(df_display, use_container_width=True, hide_index=True)
+        st.dataframe(df_display, width="stretch", hide_index=True)
 
     st.markdown("---")
     st.markdown("### 消融实验结论")
